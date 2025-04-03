@@ -42,7 +42,7 @@ services:
     container_name: proxy_nginx
     ports:
       - '80:80'
-      - "443:443"
+      - "445:445"
     restart: always
     volumes:
       - ./nginx:/etc/nginx/conf.d
