@@ -41,7 +41,7 @@ services:
       dockerfile: nginx/Dockerfile
     container_name: proxy_nginx
     ports:
-      - '80:80'
+      - '81:81'
       - "445:445"
     restart: always
     volumes:
