@@ -16,7 +16,7 @@ export const initializeAuth = () => async (dispatch: AppDispatch) => {
       dispatch(setIsRefreshing(true));
       console.log(refreshToken);
       const result = await dispatch(
-        refreshApi.endpoints.refreshTokens.initiate({ refreshToken: refreshToken })
+        refreshApi.endpoints.refreshTokens.initiate( {refresh_token:refreshToken} )
       ).unwrap();
   
       console.log('Успешное обновление токенов:', result);

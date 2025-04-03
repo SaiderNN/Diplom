@@ -38,8 +38,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.authorize(request));
     }
     @PostMapping("/refresh-token")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) throws IOException {
-        var accessToken = authService.refreshToken(refreshTokenRequest);
+    public ResponseEntity<AuthResponse> refreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
+        var accessToken = authService.refreshToken(request, response);
         return ResponseEntity.ok(accessToken); // Возвращаем новый токен в JSON
     }
 }

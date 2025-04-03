@@ -10,7 +10,7 @@ export interface ConnectRequest {
 
 export const sshApi = createApi({
   reducerPath: "sshApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8080/api/v1/ssh" }),
+  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1/ssh" }),
   endpoints: (builder) => ({
     connect: builder.mutation<any, ConnectRequest>({
       query: (credentials) => ({

@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -80,6 +81,10 @@ public class AuthService {
     }
 
     private void saveUserToken(User user, String jwtToken) {
+        if(tokenRepository.existsByToken(jwtToken))
+        {
+            return;
+        }
         var token = Token.builder()
                 .user(user)
                 .token(jwtToken)
@@ -90,25 +95,36 @@ public class AuthService {
         tokenRepository.save(token);
     }
 
-    public AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest) throws IOException {
-        String refreshToken = refreshTokenRequest.getRefreshToken();
-        String userEmail = jwtService.extractUsername(refreshToken);
-
+    public AuthResponse refreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
+        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        final String refreshToken;
+        final String userEmail;
+        if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Email уже используется");
+        }
+        refreshToken = authHeader.substring(7);
+        userEmail = jwtService.extractUsername(refreshToken);
         if (userEmail != null) {
             var user = this.userRepository.findByEmail(userEmail)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
+                    .orElseThrow();
             if (jwtService.isTokenValid(refreshToken, user)) {
                 var accessToken = jwtService.generateToken(user);
                 revokeAllUserTokens(user);
-                saveUserToken(user, accessToken);
 
-                return AuthResponse.builder()
+                var authResponse = AuthResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .build();
+                //new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+                saveUserToken(user, accessToken);
+                return authResponse;
             }
         }
-        throw new IllegalArgumentException("Invalid refresh token");
+        throw new IllegalArgumentException("Email уже используется");
     }
+
+
 }
