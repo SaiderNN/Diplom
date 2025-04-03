@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useConnectMutation } from "../../api/sshApi";
 import { setConnectionStatus } from "../../slice/sshSlice";
+import { RootState } from "../../store/store";
 
 const SshConnectionPage: React.FC = () => {
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated); // Проверка авторизации
+  
   const [host, setHost] = useState("");
   const [port, setPort] = useState(22);
   const [username, setUsername] = useState("");
@@ -24,6 +27,12 @@ const SshConnectionPage: React.FC = () => {
       console.error("Ошибка подключения:", error);
     }
   };
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login'); 
+    }
+  }, [isAuthenticated, navigate, dispatch]);
+  
 
   return (
     <div>
