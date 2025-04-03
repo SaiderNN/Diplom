@@ -90,33 +90,25 @@ public class AuthService {
         tokenRepository.save(token);
     }
 
-    public AuthResponse refreshToken(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws IOException {
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        final String refreshToken;
-        final String userEmail;
-        if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Email уже используется");
-        }
-        refreshToken = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(refreshToken);
+    public AuthResponse refreshToken(RefreshTokenRequest refreshTokenRequest) throws IOException {
+        String refreshToken = refreshTokenRequest.getRefreshToken();
+        String userEmail = jwtService.extractUsername(refreshToken);
+
         if (userEmail != null) {
             var user = this.userRepository.findByEmail(userEmail)
-                    .orElseThrow();
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
             if (jwtService.isTokenValid(refreshToken, user)) {
                 var accessToken = jwtService.generateToken(user);
                 revokeAllUserTokens(user);
                 saveUserToken(user, accessToken);
-                var authResponse = AuthResponse.builder()
+
+                return AuthResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .build();
-                //new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
-                return authResponse;
             }
         }
-        throw new IllegalArgumentException("Email уже используется");
+        throw new IllegalArgumentException("Invalid refresh token");
     }
 }

@@ -4,6 +4,7 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isRefreshing: boolean;
   
 }
 
@@ -11,6 +12,7 @@ const initialState: AuthState = {
   accessToken: localStorage.getItem('access_token') || null,
   refreshToken: localStorage.getItem('refresh_token') || null,
   isAuthenticated: !!localStorage.getItem('refresh_token'),
+  isRefreshing: false
 };
 
 const authSlice = createSlice({
@@ -42,10 +44,13 @@ const authSlice = createSlice({
       localStorage.removeItem('refresh_token');
 
     },
+    setIsRefreshing: (state, action: PayloadAction<boolean>) => {
+        state.isRefreshing = action.payload; // Устанавливаем флаг загрузки
+      }
 
 
   },
 });
 
-export const { setTokens, clearTokens } = authSlice.actions;
+export const { setTokens, clearTokens, setIsRefreshing } = authSlice.actions;
 export default authSlice.reducer;

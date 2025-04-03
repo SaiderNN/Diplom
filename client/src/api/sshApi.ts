@@ -1,15 +1,16 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-interface ConnectRequest {
+export interface ConnectRequest {
   host: string;
+  port: number;
   username: string;
-  password: string;
-  port?: number;
+  password?: string; // Необязательное поле
+  key?: string; // Необязательное поле для подключения по SSH ключу
 }
 
 export const sshApi = createApi({
   reducerPath: "sshApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "https://pilipenkoaleksey.ru/api/v1/ssh" }),
+  baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8080/api/v1/ssh" }),
   endpoints: (builder) => ({
     connect: builder.mutation<any, ConnectRequest>({
       query: (credentials) => ({
