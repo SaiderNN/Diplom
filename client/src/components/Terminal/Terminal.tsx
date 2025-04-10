@@ -49,7 +49,6 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
 
   useEffect(() => {
     if (!isMounted || !terminalRef.current) return;
-    shellInit(sessionId);
     term.current = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -143,6 +142,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
       },
       onConnect: (frame) => {
         console.log("[✅ STOMP CONNECTED]:", frame);
+        shellInit(sessionId);
         stompClient.current?.subscribe(`/topic/response/${sessionId}`, (message) => {
           let body = message.body;
           if (!term.current) return;
