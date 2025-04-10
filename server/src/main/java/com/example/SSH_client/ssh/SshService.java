@@ -64,6 +64,11 @@ public class SshService {
         int sessionId = sshSession.getSessionId();
         String sessionKey = String.valueOf(sessionId);
         activeSessions.put(sessionKey, session);
+        try {
+            Thread.sleep(3000); // Небольшая задержка в 100 мс для корректной подписки
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         initShellSession(String.valueOf(sessionId));
         return sessionId;
     }
