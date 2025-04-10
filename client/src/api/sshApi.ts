@@ -36,7 +36,14 @@ export const sshApi = createApi({
         body: credentials,
       }),
     }),
+    initshell: builder.mutation<void, number>({
+      query: (sessionId) => ({
+        url: "/initshell",
+        method: "POST",
+        params: { sessionId },
+      }),
+    }),
   }),
 });
 
-export const { useConnectMutation } = sshApi;
+export const { useConnectMutation, useInitshellMutation } = sshApi;

@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
 import "./Terminal.css";
 import { Client } from "@stomp/stompjs";
+import { useInitshellMutation } from "../../api/sshApi";
 import SockJS from "sockjs-client";
 
 interface XTermConsoleProps {
@@ -20,7 +21,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   const [isMounted, setIsMounted] = useState(false);
   const inputCursorRef = useRef<number>(0); // позиция курсора
   const promptLineRef = useRef<string>(""); // вся строка последнего приглашения
-
+  const [shellInit, { isLoading, error }] = useInitshellMutation();
 
   function redrawInputLine(terminal: Terminal, input: string, cursorPos: number) {
     const prompt = promptLineRef.current;
@@ -48,7 +49,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
 
   useEffect(() => {
     if (!isMounted || !terminalRef.current) return;
-  
+    shellInit(sessionId);
     term.current = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -178,7 +179,6 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
     });
   
     stompClient.current.activate();
-  
     return () => {
       stompClient.current?.deactivate();
       term.current?.dispose();

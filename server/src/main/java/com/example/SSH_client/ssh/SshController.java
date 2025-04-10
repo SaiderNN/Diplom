@@ -22,10 +22,10 @@ public class SshController {
         return ResponseEntity.ok(new SshResponse("Connection established", 200, sessionId));
     }
 
-    //@PostMapping("/execute")
-    //public String executeCommand(@RequestParam String command) {
-    //    return sshService.executeCommand(command);
-    //}
+    @PostMapping("/initshell")
+    public void executeCommand(@RequestParam Number sessionId) throws IOException {
+        sshService.initShellSession(sessionId.toString());
+    }
 
   //  @PostMapping("/disconnect")
    // public String disconnect() {
