@@ -8,14 +8,14 @@ public class SshRequest {
     private int port;
     private String username;
     private String password; // Опционально, если используется аутентификация по паролю
-    private String privateKeyPath; // Опционально, если используется SSH-ключ
+    private String privateKey; // Опционально, если используется SSH-ключ
 
-    public SshRequest(String host, int port, String username, String password, String privateKeyPath) {
+    public SshRequest(String host, int port, String username, String password, String privateKey) {
         this.host = host;
         this.port = port;
         this.username = username;
         this.password = password;
-        this.privateKeyPath = privateKeyPath;
+        this.privateKey = privateKey;
     }
 
     // Геттеры
@@ -23,12 +23,12 @@ public class SshRequest {
     public int getPort() { return port; }
     public String getUsername() { return username; }
     public String getPassword() { return password; }
-    public String getPrivateKeyPath() { return privateKeyPath; }
+    public String getPrivateKey() { return privateKey; }
 
     // Сеттеры (если нужны)
     public void setHost(String host) { this.host = host; }
     public void setPort(int port) { this.port = port; }
     public void setUsername(String username) { this.username = username; }
     public void setPassword(String password) { this.password = password; }
-    public void setPrivateKeyPath(String privateKeyPath) { this.privateKeyPath = privateKeyPath; }
+    public void setPrivateKey(String privateKey) { this.privateKey = privateKey; }
 }

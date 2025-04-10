@@ -9,7 +9,7 @@ export interface AuthData {
   
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1/auth" }),
+  baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8080/api/v1/auth" }),
   endpoints: (builder) => ({
     login: builder.mutation<RefreshResponse, AuthData >({
       query: (credentials) => ({

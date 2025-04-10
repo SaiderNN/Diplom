@@ -1,7 +1,11 @@
 package com.example.SSH_client.ssh;
 
+import org.apache.sshd.client.session.ClientSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1/ssh")
@@ -11,9 +15,11 @@ public class SshController {
     private SshService sshService;
 
     @PostMapping("/connect")
-    public String connect(@RequestBody SshRequest request) {
-        boolean isConnected = sshService.connect(request);
-        return isConnected ? "SSH-соединение установлено" : "Ошибка подключения";
+    public ResponseEntity<SshResponse> connect(@RequestBody SshRequest request) throws IOException {
+        // Создание сессии
+        int sessionId = sshService.createSession(request);
+
+        return ResponseEntity.ok(new SshResponse("Connection established", 200, sessionId));
     }
 
     //@PostMapping("/execute")
@@ -21,9 +27,9 @@ public class SshController {
     //    return sshService.executeCommand(command);
     //}
 
-    @PostMapping("/disconnect")
-    public String disconnect() {
-        sshService.close();
-        return "SSH-соединение закрыто";
-    }
+  //  @PostMapping("/disconnect")
+   // public String disconnect() {
+   //     sshService.closeSession();
+   //     return "SSH-соединение закрыто";
+   // }
 }

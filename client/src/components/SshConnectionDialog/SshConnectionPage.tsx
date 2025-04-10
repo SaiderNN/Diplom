@@ -4,8 +4,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { ConnectRequest, useConnectMutation } from "../../api/sshApi";
 import { setConnectionStatus } from "../../slice/sshSlice";
 import { RootState } from "../../store/store";
-import Terminal from "../../components/Terminal/Terminal"; // Компонент консоли
+import Terminal from "../Terminal/Terminal"; // Компонент консоли
 import "./SshConnectionPage.css"; // Подключаем стили
+import XTermConsole from "../Terminal/Terminal";
+
+
+
 
 const SshConnectionPage: React.FC = () => {
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
@@ -16,28 +20,46 @@ const SshConnectionPage: React.FC = () => {
   const [key, setKey] = useState("");
   const [useKeyAuth, setUseKeyAuth] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
+  const [isConnected, setIsConnected] = useState(Boolean); // Состояние для отображения шторки
+  const [session, setSessionId] = useState(-1);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [connect, { isLoading, error }] = useConnectMutation();
   const handleConnect = async () => {
     setConsoleOutput((prev) => [...prev, "Подключение к серверу..."]);
-  
+   // Показываем шторку
+
     try {
       // Формируем объект запроса без undefined значений
       const authData: ConnectRequest = useKeyAuth
         ? { host, port, username, key } // Подключение по SSH-ключу
         : { host, port, username, password }; // Подключение по паролю
-  
-      await connect(authData).unwrap();
-  
-      dispatch(setConnectionStatus(true));
-      setConsoleOutput((prev) => [...prev, "Успешное подключение!"]);
-      navigate("/terminal");
+
+      const result = await connect(authData).unwrap();
+
+      if(result.status == 200)
+      {
+        dispatch(setConnectionStatus(true));
+        setSessionId(result.session_id)
+        setIsConnected(true);
+        setConsoleOutput((prev) => [...prev, "Успешное подключение!"]);
+        console.log(result)
+        console.log(session)
+        console.log(isConnected)
+        //navigate("/terminal");
+       
+      }
+      else{
+
+      }
+    
     } catch (err) {
       setConsoleOutput((prev) => [...prev, "Ошибка подключения"]);
-    }
+      console.log(err);
   };
+}
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -47,6 +69,7 @@ const SshConnectionPage: React.FC = () => {
   return (
     <div className="ssh-container">
       {/* Левая часть — Форма подключения */}
+      {(session == -1) && 
       <div className="ssh-box">
         <h2>SSH Подключение</h2>
 
@@ -88,10 +111,13 @@ const SshConnectionPage: React.FC = () => {
         </button>
 
         {error && <p className="error-message">Ошибка подключения</p>}
-      </div>
+      </div>}
 
-      {/* Правая часть — Терминал */}
-      <Terminal />
+           {/* Правая часть — Терминал */}
+      {(session!= -1) && <XTermConsole sessionId= {session}/>}
+
+   
+      
     </div>
   );
 };

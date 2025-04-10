@@ -12,7 +12,7 @@ export interface RefreshTokenData {
 export const refreshApi = createApi({
   reducerPath: 'refreshApi',
   baseQuery: fetchBaseQuery({ 
-    baseUrl: '/api/v1/auth' 
+    baseUrl: 'http://localhost:8080/api/v1/auth', 
   }),
   endpoints: (builder) => ({
     refreshTokens: builder.mutation<RefreshResponse, RefreshTokenData>({

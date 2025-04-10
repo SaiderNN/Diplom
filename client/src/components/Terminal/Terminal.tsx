@@ -3,25 +3,52 @@ import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
 import "./Terminal.css";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
-const XTermConsole: React.FC = () => {
+interface XTermConsoleProps {
+  sessionId: number; // Ваш параметр, например, строка
+}
+
+const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const term = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
   const [input, setInput] = useState(""); // Введенная команда
-  const [currentDir] = useState("user@ubuntu:~$ "); // Текущая директория (не изменяется)
+  const [messages, setMessages] = useState<string[]>([]); // Сообщения от сервера
+  const stompClient = useRef<Client | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const inputCursorRef = useRef<number>(0); // позиция курсора
+  const promptLineRef = useRef<string>(""); // вся строка последнего приглашения
 
-  // Ссылки для ввода и для хранения строки
-  const inputRef = useRef<string>("");
+
+  function redrawInputLine(terminal: Terminal, input: string, cursorPos: number) {
+    const prompt = promptLineRef.current;
+  
+    // Очистка строки и возврат курсора
+    terminal.write("\x1b[2K\r");
+  
+    // Переотрисовка строки с prompt и вводом
+    terminal.write(prompt + input);
+  
+    // Сдвигаем курсор назад, если он не в конце
+    const moveLeft = input.length - cursorPos;
+    if (moveLeft > 0) {
+      terminal.write(`\x1b[${moveLeft}D`);
+    }
+  }
+  
+  
 
   useLayoutEffect(() => {
-    setTimeout(() => setIsMounted(true), 300);
+    if (terminalRef.current) {
+      setIsMounted(true);
+    }
   }, []);
 
   useEffect(() => {
     if (!isMounted || !terminalRef.current) return;
-
+  
     term.current = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -32,49 +59,132 @@ const XTermConsole: React.FC = () => {
         cursor: "#FF7800",
       },
     });
-
+  
     fitAddon.current = new FitAddon();
     term.current.loadAddon(fitAddon.current);
     term.current.open(terminalRef.current);
-
-
-    setTimeout(() => {
-      fitAddon.current?.fit();
-      term.current?.write(currentDir); // Печатаем строку подсказки
-    }, 100);
-
-    // Слушаем ввод с клавиатуры
-    term.current.onData(data => {
-      if (data === '\r') { // Нажат Enter
-        term.current?.write("\r\n");
-        term.current?.write(currentDir); // Печатаем строку подсказки снова
-        if (input.trim() === "ls") {
-          term.current?.write("\r\nfile1.txt  file2.txt  file3.txt");
-        } else if (input.trim()) {
-          term.current?.write("\r\nCommand not found: " + input);
+    term.current.focus();
+    fitAddon.current.fit();
+  
+    let currentInput = ""; // переменная для текущей команды
+    let lastCommand = ""; // хранение последней команды, чтобы не выводить её снова
+  
+    term.current.onData((data) => {
+      const allowedChars = /^[a-zA-Z0-9\-_.\/"'\s]*$/;
+  
+      if (!term.current) return;
+  
+      let inputStr = currentInput;
+      let cursorPos = inputCursorRef.current ?? inputStr.length;
+  
+      // Обработка нажатия Enter
+      if (data === "\r") {
+        const trimmed = inputStr.trim();
+        term.current.write("\r\n"); // перенос строки, но вывод команды не происходит
+  
+        if (trimmed.length > 0) {
+          // Отправляем команду по WebSocket
+          stompClient.current?.publish({
+            destination: "/app/execute",
+            body: JSON.stringify({ command: trimmed, sessionId: String(sessionId) }),
+          });
+          console.log("📤 Отправлена команда:", trimmed, String(sessionId));
+  
+          // Очищаем строку ввода, но не выводим её в терминале
+          currentInput = "";
+          inputCursorRef.current = 0;
+          lastCommand = trimmed; // сохраняем команду для исключения дублирования
         }
-        setInput(""); // Сброс ввода после выполнения команды
-        inputRef.current = ""; // Сбрасываем также inputRef
-      } else if (data === '\u007f') { // Обработка backspace
-        if (inputRef.current.length > 0) { // Если есть введенные символы
-          inputRef.current = inputRef.current.slice(0, -1); // Удаляем последний символ из inputRef
-          term.current?.write("\b \b"); // Удаляем символ в терминале
-        }
-      } else { // Обычные символы
-        inputRef.current += data; // Добавляем символ в inputRef
-        term.current?.write(data); // Печатаем символ в терминале
       }
-      setInput(inputRef.current); // Обновляем состояние с новым вводом
-
-      // Прокручиваем терминал, чтобы всегда была видна последняя строка
+  
+      // Обработка Backspace, стрелок и других символов
+      else if (data === "\u007f") {
+        if (cursorPos > 0) {
+          inputStr = inputStr.slice(0, cursorPos - 1) + inputStr.slice(cursorPos);
+          cursorPos--;
+          redrawInputLine(term.current, inputStr, cursorPos);
+        }
+      }
+  
+      else if (data === "\x1b[D") {
+        if (cursorPos > 0) {
+          cursorPos--;
+          term.current.write("\x1b[D");
+        }
+      }
+  
+      else if (data === "\x1b[C") {
+        if (cursorPos < inputStr.length) {
+          cursorPos++;
+          term.current.write("\x1b[C");
+        }
+      }
+  
+      else if (allowedChars.test(data)) {
+        inputStr = inputStr.slice(0, cursorPos) + data + inputStr.slice(cursorPos);
+        cursorPos++;
+        redrawInputLine(term.current, inputStr, cursorPos);
+      }
+  
+      currentInput = inputStr;
+      inputCursorRef.current = cursorPos;
+  
       fitAddon.current?.fit();
       term.current?.scrollToBottom();
     });
-
+  
+    // STOMP client init + ЛОГИ
+    stompClient.current = new Client({
+      brokerURL: "ws://localhost:8080/ws/ssh",
+      connectHeaders: {},
+      debug: (str) => {
+        console.log(`[STOMP DEBUG]: ${str}`);
+      },
+      onConnect: (frame) => {
+        console.log("[✅ STOMP CONNECTED]:", frame);
+        stompClient.current?.subscribe(`/topic/response/${sessionId}`, (message) => {
+          let body = message.body;
+          if (!term.current) return;
+        
+          // Если приходит новая строка — сохраняем prompt
+          if (body.endsWith("# ") || body.endsWith("$ ")) {
+            promptLineRef.current = body;
+        
+            // Очистка текущего ввода и обновление позиции курсора
+            currentInput = "";
+            inputCursorRef.current = 0;
+          }
+        
+          // Находим первое вхождение lastCommand в body и удаляем его
+          if (lastCommand) {
+            body = body.replace(lastCommand, ""); // Убираем только первое вхождение команды
+          }
+        
+          // Выводим изменённый ответ
+          term.current.write(body); // Выводим ответ без лишнего "\r"
+        });
+        
+      },
+      onStompError: (frame) => {
+        console.error("[❌ STOMP ERROR]:", frame.headers["message"], frame.body);
+      },
+      onWebSocketError: (event) => {
+        console.error("[❌ WebSocket Error]:", event);
+      },
+      onWebSocketClose: (event) => {
+        console.warn("[⚠️ WebSocket Closed]:", event);
+      },
+      webSocketFactory: () => new SockJS("http://localhost:8080/ws/ssh"),
+    });
+  
+    stompClient.current.activate();
+  
     return () => {
+      stompClient.current?.deactivate();
       term.current?.dispose();
     };
-  }, [isMounted, currentDir]); // Следим за изменениями currentDir
+  }, [isMounted]);
+  
 
   return (
     <div className="terminal-container">
@@ -86,9 +196,8 @@ const XTermConsole: React.FC = () => {
         </div>
         <span className="window-title"></span>
       </div>
-      <div ref={terminalRef} className="terminal" />
+      <div ref={terminalRef} className="terminal" tabIndex={0} />
     </div>
-
   );
 };
 

@@ -8,11 +8,28 @@ export interface ConnectRequest {
   key?: string; // Необязательное поле для подключения по SSH ключу
 }
 
+export interface ConnectResponse {
+  welcome_text: string;
+  status: number;
+  session_id: number
+
+}
+
 export const sshApi = createApi({
   reducerPath: "sshApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1/ssh" }),
+  baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8080/api/v1/ssh",
+    prepareHeaders: (headers) => {
+      const token = localStorage.getItem('access_token');
+      
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`); 
+      }
+      
+      return headers;
+    },
+   }),
   endpoints: (builder) => ({
-    connect: builder.mutation<any, ConnectRequest>({
+    connect: builder.mutation<ConnectResponse, ConnectRequest>({
       query: (credentials) => ({
         url: "/connect",
         method: "POST",
