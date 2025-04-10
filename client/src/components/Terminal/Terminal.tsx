@@ -135,7 +135,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   
     // STOMP client init + ЛОГИ
     stompClient.current = new Client({
-      brokerURL: "ws://localhost:8080/ws/ssh",
+      //brokerURL: "ws://localhost:8080/ws/ssh",
       connectHeaders: {},
       debug: (str) => {
         console.log(`[STOMP DEBUG]: ${str}`);
@@ -174,7 +174,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
       onWebSocketClose: (event) => {
         console.warn("[⚠️ WebSocket Closed]:", event);
       },
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws/ssh"),
+      webSocketFactory: () => new SockJS("/ws/ssh"),
     });
   
     stompClient.current.activate();

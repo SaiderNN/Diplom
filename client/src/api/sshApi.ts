@@ -17,7 +17,7 @@ export interface ConnectResponse {
 
 export const sshApi = createApi({
   reducerPath: "sshApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8080/api/v1/ssh",
+  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1/ssh",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('access_token');
       
