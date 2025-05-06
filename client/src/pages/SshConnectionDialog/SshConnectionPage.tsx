@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ConnectRequest, useConnectMutation } from "../../api/sshApi";
-import { setConnectionStatus } from "../../slice/sshSlice";
 import { RootState } from "../../store/store";
-import Terminal from "../Terminal/Terminal"; // Компонент консоли
 import "./SshConnectionPage.css"; // Подключаем стили
-import XTermConsole from "../Terminal/Terminal";
+import XTermConsole from "../../components/Terminal/Terminal";
+import { addConnection } from "../../slice/sshConnectionSlice";
 
 
 
@@ -40,7 +39,7 @@ const SshConnectionPage: React.FC = () => {
 
       if(result.status == 200)
       {
-        dispatch(setConnectionStatus(true));
+        dispatch(addConnection({ sessionId: result.session_id, host:host, username:username  }));
         setSessionId(result.session_id)
         setIsConnected(true);
         setConsoleOutput((prev) => [...prev, "Успешное подключение!"]);
@@ -62,7 +61,7 @@ const SshConnectionPage: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate("/");
     }
   }, [isAuthenticated, navigate]);
 
@@ -107,14 +106,14 @@ const SshConnectionPage: React.FC = () => {
         )}
 
         <button onClick={handleConnect} disabled={isLoading}>
-          {isLoading ? "Подключение..." : "Подключиться"}
+          {isLoading ? "Сохранение..." : "Сохранить"}
         </button>
 
         {error && <p className="error-message">Ошибка подключения</p>}
       </div>}
 
            {/* Правая часть — Терминал */}
-      {(session!= -1) && <XTermConsole sessionId= {session}/>}
+     {/* {(session!= -1) && <XTermConsole sessionId= {session}/>}*/}
 
    
       

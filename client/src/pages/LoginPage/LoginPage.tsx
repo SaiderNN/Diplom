@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { useLoginMutation } from '../../api/authApi';
 import { useDispatch } from 'react-redux';
 import { clearTokens, setTokens } from '../../slice/authSlice';
-import { useNavigate } from 'react-router-dom';
-import './LoginPage.css'; // Импорт CSS
+import { useNavigate, Link } from 'react-router-dom';
+import { useGetUserIdQuery } from "../../api/profileApi";
+import { setUserId } from '../../slice/profileSlice';
+
+
+import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -11,33 +15,33 @@ const LoginPage: React.FC = () => {
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+  const { data: userIdData, refetch: refetchUserId } = useGetUserIdQuery();
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     try {
       const result = await login({ email, password }).unwrap();
-      console.log('Login successful!', result);
       dispatch(clearTokens());
       dispatch(setTokens({
         accessToken: result.access_token,
         refreshToken: result.refresh_token,
       }));
-      
+      const { data: userIdData } = await refetchUserId();
+      console.log(userIdData?.id)
+      dispatch(setUserId(userIdData?.id ?? null));
       navigate('/');
     } catch (err) {
-      console.error('Login failed:', err);
       alert('Ошибка авторизации');
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-        <h2>Login</h2>
+    <div className="auth-container">
+      <div className="auth-box">
+        <h2>Вход</h2>
         <form onSubmit={handleSubmit}>
           <input 
-            type="text"
+            type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email" 
@@ -51,9 +55,10 @@ const LoginPage: React.FC = () => {
             required 
           />
           <button type="submit" disabled={isLoading}>
-            {isLoading ? "Loading..." : "Login"}
+            {isLoading ? "Loading..." : "Войти"}
           </button>
         </form>
+        <p>Нет аккаунта? <Link to="/register">Зарегистрироваться</Link></p>
       </div>
     </div>
   );

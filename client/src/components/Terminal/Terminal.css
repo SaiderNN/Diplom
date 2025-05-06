@@ -12,6 +12,7 @@
   box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.5);
   margin: 0 auto; /* Центровка */
   overflow: hidden; /* Убираем overflow, чтобы не было скроллбаров на контейнере */
+  background-color: #300A24; 
 }
 
 /* Заголовок терминала */

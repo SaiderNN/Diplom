@@ -1,4 +1,4 @@
-.login-container {
+.auth-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -6,7 +6,7 @@
     background-color: #e0f7fa; 
   }
   
-  .login-box {
+  .auth-box {
     background: white;
     padding: 2rem;
     border-radius: 10px;
@@ -15,17 +15,17 @@
     text-align: center;
   }
   
-  .login-box h2 {
+  .auth-box h2 {
     margin-bottom: 1.5rem;
     color: #333;
   }
   
-  .login-box form {
+  .auth-box form {
     display: flex;
     flex-direction: column;
   }
   
-  .login-box input {
+  .auth-box input {
     padding: 10px;
     margin-bottom: 1rem;
     border: 1px solid #ccc;
@@ -33,12 +33,12 @@
     font-size: 1rem;
   }
   
-  .login-box input:focus {
+  .auth-box input:focus {
     border-color: #007bff;
     outline: none;
   }
   
-  .login-box button {
+  .auth-box button {
     background: #007bff;
     color: white;
     border: none;
@@ -49,11 +49,11 @@
     transition: background 0.3s ease;
   }
   
-  .login-box button:hover {
+  .auth-box button:hover {
     background: #0056b3;
   }
   
-  .login-box button:disabled {
+  .auth-box button:disabled {
     background: #ccc;
     cursor: not-allowed;
   }

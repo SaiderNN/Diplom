@@ -4,30 +4,37 @@ export interface ConnectRequest {
   host: string;
   port: number;
   username: string;
-  password?: string; // Необязательное поле
-  key?: string; // Необязательное поле для подключения по SSH ключу
+  password?: string;
+  key?: string;
 }
 
 export interface ConnectResponse {
   welcome_text: string;
   status: number;
-  session_id: number
+  session_id: number;
+}
 
+// Интерфейс для сессии (можно дополнить по необходимости)
+export interface SshSession {
+  sessionId: number;
+  host: string;
+  username: string;
 }
 
 export const sshApi = createApi({
   reducerPath: "sshApi",
-  baseQuery: fetchBaseQuery({ baseUrl: '/api/v1/ssh',
+  baseQuery: fetchBaseQuery({
+    baseUrl: "http://localhost:8080/api/v1/ssh",
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('access_token');
-      
+      const token = localStorage.getItem("access_token");
+
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`); 
+        headers.set("Authorization", `Bearer ${token}`);
       }
-      
+
       return headers;
     },
-   }),
+  }),
   endpoints: (builder) => ({
     connect: builder.mutation<ConnectResponse, ConnectRequest>({
       query: (credentials) => ({
@@ -43,7 +50,14 @@ export const sshApi = createApi({
         params: { sessionId },
       }),
     }),
+    getSessions: builder.query<SshSession[], number>({
+      query: (userId) => ({
+        url: "/list",
+        method: "GET",
+        params: { id: userId },
+      }),
+    }),
   }),
 });
 
-export const { useConnectMutation, useInitshellMutation } = sshApi;
+export const {useConnectMutation, useInitshellMutation, useGetSessionsQuery,} = sshApi;

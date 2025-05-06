@@ -1,22 +1,22 @@
-/* Обычно в начале файла стилей */
+
 html, body {
   height: 100%;
   margin: 0;
-  overflow: hidden; /* 👈 запрет скролла */
+  overflow: hidden; 
 }
 
-/* Твой контейнер */
+
 .ssh-container {
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* 👈 вверх */
+  align-items: flex-start; 
   height: 100vh;
   padding: 2rem;
-  background-color: #d3d3d3;
+  background-color: #e0f7fa; 
   overflow: hidden;
 }
 
-  /* Окно подключения */
+  
   .ssh-box {
     background: white;
     padding: 2rem;
@@ -24,17 +24,17 @@ html, body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     width: 350px;
     text-align: left;
-    /* margin-top: 5%; */  /* Убрать */
+  
   }
   
-  /* Заголовок */
+
   .ssh-box h2 {
     margin-bottom: 1rem;
     color: #333;
     text-align: center;
   }
   
-  /* Подписи к инпутам */
+
   .ssh-box label {
     display: block;
     margin-bottom: 5px;
@@ -42,7 +42,7 @@ html, body {
     color: #555;
   }
   
-  /* Все инпуты одинаковой ширины */
+
   .ssh-box input,
   .ssh-box textarea,
   .ssh-box button {
@@ -52,33 +52,32 @@ html, body {
     border: 1px solid #aaa;
     border-radius: 5px;
     font-size: 1rem;
-    box-sizing: border-box; /* Включаем box-sizing, чтобы отступы и padding не нарушали ширину */
+    box-sizing: border-box; 
   }
   
-  /* Текстовая область */
+ 
   .ssh-box textarea {
     height: 80px;
     resize: none;
   }
   
 
-/* Радиокнопки переключателя */
-/* Радиокнопки переключателя */
+
 .auth-toggle {
     display: flex;
     justify-content:space-around;
     margin-bottom: 1rem;
-    gap: 10px; /* Меньше расстояние между радиокнопками */
+    gap: 10px; 
   }
   
-  /* Для каждой метки (label) */
+ 
   .auth-toggle label {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    text-align: center; /* Выровнять текст по центру */
+    text-align: center; 
     cursor: pointer;
-    gap: 3px; /* Меньше расстояние между кнопкой и текстом */
+    gap: 3px; 
   }
   
   
@@ -87,7 +86,7 @@ html, body {
     margin-right: 5px;
   }
   
-  /* Кнопка подключения */
+ 
   .ssh-box button {
     background: #007bff;
     color: white;
@@ -109,7 +108,7 @@ html, body {
     cursor: not-allowed;
   }
   
-  /* Ошибки */
+
   .error-message {
     color: red;
     margin-top: 10px;
@@ -126,5 +125,5 @@ html, body {
     justify-content: center;
     align-items: center;
     font-size: 20px;
-    z-index: 10; /* Чтобы шторка была сверху */
+    z-index: 10; 
   }

@@ -4,19 +4,19 @@ import './App.css';
 
 import {Route, Routes } from 'react-router-dom';
 import XTermConsole from './components/Terminal/Terminal';
-import SshConnectPage from './components/SshConnectionDialog/SshConnectionPage';
+import SshConnectionPage from './pages/SshConnectionDialog/SshConnectionPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import { AppDispatch } from './store/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { initializeAuth } from './thunks/authThunks';
 import { setIsRefreshing } from './slice/authSlice';
-
+import RegisterPage from './pages/RegisterPage/RegisterPage';
+import RefugePage from './pages/RefugePage/RefugePage';
 
 
 const App: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
   const [isAuthInitialized, setIsAuthInitialized] = useState(false); 
- 
   const isRefreshing = useSelector((state: any) => state.auth.isRefreshing);
   useEffect(() => {
     const initializeAuthentication = async () => {
@@ -37,8 +37,10 @@ const App: React.FC = () => {
   return (
    
       <Routes>
-        <Route path="/" element={<SshConnectPage />} /> 
         <Route path="/login" element={<LoginPage />} /> 
+        <Route path="/register" element={<RegisterPage />} /> 
+        <Route path="/" element={<RefugePage />} />
+        <Route path="/connect/new" element={<SshConnectionPage />} />
       </Routes>
     
   );

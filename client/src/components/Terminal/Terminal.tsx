@@ -6,6 +6,9 @@ import "./Terminal.css";
 import { Client } from "@stomp/stompjs";
 import { useInitshellMutation } from "../../api/sshApi";
 import SockJS from "sockjs-client";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setCurrentConnection } from "../../slice/sshConnectionSlice";
 
 interface XTermConsoleProps {
   sessionId: number; // Ваш параметр, например, строка
@@ -22,6 +25,8 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   const inputCursorRef = useRef<number>(0); // позиция курсора
   const promptLineRef = useRef<string>(""); // вся строка последнего приглашения
   const [shellInit, { isLoading, error }] = useInitshellMutation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   function redrawInputLine(terminal: Terminal, input: string, cursorPos: number) {
     const prompt = promptLineRef.current;
@@ -135,7 +140,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   
     // STOMP client init + ЛОГИ
     stompClient.current = new Client({
-      brokerURL: "wss://pilipenkoaleksey.ru/ws/ssh",
+      brokerURL: /*"wss://pilipenkoaleksey.ru/ws/ssh"*/ "wss://localhost:8080/ws/ssh",
       connectHeaders: {},
       debug: (str) => {
         console.log(`[STOMP DEBUG]: ${str}`);
@@ -164,6 +169,12 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
           // Выводим изменённый ответ
           term.current.write(body); // Выводим ответ без лишнего "\r"
         });
+        stompClient.current?.subscribe(`/topic/exception/${sessionId}`, (message) => {
+          let body = message.body;
+          if (!term.current) return;
+         dispatch(setCurrentConnection(null));
+          
+        });
         
       },
       onStompError: (frame) => {
@@ -175,7 +186,7 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
       onWebSocketClose: (event) => {
         console.warn("[⚠️ WebSocket Closed]:", event);
       },
-      webSocketFactory: () => new SockJS("https://pilipenkoaleksey.ru/ws/ssh"),
+      webSocketFactory: () => new SockJS(/*"https://pilipenkoaleksey.ru/ws/ssh"*/"http://localhost:8080/ws/ssh"),
     });
   
     stompClient.current.activate();

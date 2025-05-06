@@ -6,10 +6,17 @@ export interface AuthData {
     email: string; 
     password: string; 
   }
+
+export interface RegData {
+    firstname: string;
+    lastname: string;
+    email: string; 
+    password: string; 
+  }  
   
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api/v1/auth' }),
+  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/api/v1/auth' }),
   endpoints: (builder) => ({
     login: builder.mutation<RefreshResponse, AuthData >({
       query: (credentials) => ({
@@ -18,7 +25,14 @@ export const authApi = createApi({
         body: credentials,
       }),
     }),
+    register: builder.mutation<RefreshResponse, RegData>({
+      query: (credentials) => ({
+        url: '/register',
+        method: 'POST',
+        body: credentials,
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation } = authApi;
+export const { useLoginMutation, useRegisterMutation } = authApi;

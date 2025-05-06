@@ -26,6 +26,7 @@ export const initializeAuth = () => async (dispatch: AppDispatch) => {
           refreshToken: result.refresh_token,
         })
       );
+      
     } catch (error: any) {
       console.error('Ошибка при обновлении токена:', error);
       dispatch(clearTokens());
