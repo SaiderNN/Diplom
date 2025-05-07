@@ -12,6 +12,7 @@ import { initializeAuth } from './thunks/authThunks';
 import { setIsRefreshing } from './slice/authSlice';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import RefugePage from './pages/RefugePage/RefugePage';
+import TerminalPage from './pages/TerminalPage/TerminalPage';
 
 
 const App: React.FC = () => {
@@ -41,6 +42,7 @@ const App: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} /> 
         <Route path="/" element={<RefugePage />} />
         <Route path="/connect/new" element={<SshConnectionPage />} />
+        <Route path="/terminal" element={<TerminalPage />} />  {/* Новый маршрут для терминала */}
       </Routes>
     
   );

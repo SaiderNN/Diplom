@@ -1,10 +1,9 @@
 package com.example.SSH_client.ssh;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.example.SSH_client.user.User;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
 import lombok.*;
 import org.apache.sshd.client.channel.ChannelShell;
 
@@ -17,17 +16,22 @@ import org.apache.sshd.client.channel.ChannelShell;
 public class SshSession {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)  // Это важно
-    private int sessionId; // Идентификатор сессии
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private int sessionId;
 
-    @Setter
     private String host;
-    @Setter
     private String username;
-    @Setter
     private String password;
-    @Setter
+
+    @Lob  // Приватный ключ может быть длинным — это важно
+    private String privateKey;
+
     private String sessionState;
-    @Setter
     private String channelState;
+
+    // Привязка к пользователю
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonBackReference // внешний ключ в таблице ssh_session
+    private User user;
 }

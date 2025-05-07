@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/ssh")
-                .setAllowedOrigins("https://pilipenkoaleksey.ru") // Разрешить доступ с этого адреса
+                .setAllowedOrigins("https://pilipenkoaleksey.ru", "http://localhost:3000") // Разрешить доступ с этого адреса
                 .withSockJS();
                                 // Подключение с использованием SockJS для fallback
     }

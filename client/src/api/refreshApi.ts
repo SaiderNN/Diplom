@@ -29,7 +29,7 @@ export const refreshApi = createApi({
         url: '/refresh-token',
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${refresh_token}`,  // Передаем токен как Bearer в заголовке
+          'Authorization': `Bearer ${refresh_token}`, 
         },
       }),
     }),

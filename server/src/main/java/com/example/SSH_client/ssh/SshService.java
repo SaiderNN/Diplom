@@ -1,10 +1,12 @@
 package com.example.SSH_client.ssh;
 
+import com.example.SSH_client.user.User;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.session.ClientSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -17,7 +19,9 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.*;
+
 
 @Service
 public class SshService {
@@ -39,43 +43,67 @@ public class SshService {
     }
 
     public int createSession(SshRequest request) throws IOException {
-        ClientSession session = client.connect(request.getUsername(), request.getHost(), request.getPort())
-                .verify()
-                .getSession();
 
-        if (request.getPassword() != null) {
-            session.addPasswordIdentity(request.getPassword());
-        }
-
-        if (request.getPrivateKey() != null) {
-            KeyPair keyPair = getKeyPairFromPrivateKey(request.getPrivateKey());
-            session.addPublicKeyIdentity(keyPair);
-        }
-
-        session.auth().verify();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         SshSession sshSession = new SshSession();
         sshSession.setHost(request.getHost());
         sshSession.setUsername(request.getUsername());
         sshSession.setPassword(request.getPassword());
+        sshSession.setPrivateKey(request.getPrivateKey());
         sshSession.setSessionState("OPEN");
+        sshSession.setUser(currentUser);
         sshSessionRepository.save(sshSession);
 
         int sessionId = sshSession.getSessionId();
         String sessionKey = String.valueOf(sessionId);
-        activeSessions.put(sessionKey, session);
+        //activeSessions.put(sessionKey, session);
         //initShellSession(String.valueOf(sessionId));
         return sessionId;
     }
 
     public void initShellSession(String sessionId) throws IOException {
-        ClientSession session = activeSessions.get(sessionId);
-        if (session == null || !session.isOpen()) {
-            throw new IllegalStateException("SSH session not found or not open.");
+        // Получаем SSH-сессию из репозитория
+        SshSession sshSession = sshSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Сессия с id " + sessionId + " не найдена"));
+
+        // Создаём новую SSH-сессию
+        System.out.println("Создание SSH-сессии:");
+        System.out.println("ID: " + sessionId);
+        System.out.println("Пользователь: " + sshSession.getUsername());
+        System.out.println("Хост: " + sshSession.getHost());
+        System.out.println("Пароль: " + sshSession.getPassword());
+        System.out.println("Ключ: " + sshSession.getPrivateKey());
+
+        ClientSession session = client.connect(
+                sshSession.getUsername(),
+                sshSession.getHost(),
+                22
+        ).verify().getSession();
+
+        if (sshSession.getPassword() != null) {
+            System.out.println("Аутентификация по паролю");
+            session.addPasswordIdentity(sshSession.getPassword());
         }
 
+        if (sshSession.getPrivateKey() != null) {
+            System.out.println("Аутентификация по приватному ключу");
+            KeyPair keyPair = getKeyPairFromPrivateKey(sshSession.getPrivateKey());
+            session.addPublicKeyIdentity(keyPair);
+        }
+
+// ВАЖНО: проверка результата аутентификации
+        boolean authSuccess = session.auth().verify(15, TimeUnit.SECONDS).isSuccess();
+        if (!authSuccess) {
+            throw new IllegalStateException("Аутентификация не удалась! Проверь логин/пароль или ключ.");
+        }
+
+        // Сохраняем активную сессию
+        activeSessions.put(sessionId, session);
+
+        // Открываем shell-канал
         ChannelShell channel = session.createShellChannel();
-        channel.setUsePty(true); // ВКЛЮЧАЕМ PTY
+        channel.setUsePty(true);
 
         PipedOutputStream pipedOut = new PipedOutputStream();
         PipedInputStream pipedIn = new PipedInputStream(pipedOut);
@@ -87,6 +115,7 @@ public class SshService {
 
         shellSessions.put(sessionId, new ShellSession(channel, channel.getInvertedIn(), pipedOut));
 
+        // Чтение вывода асинхронно
         outputExecutor.submit(() -> {
             try (InputStreamReader reader = new InputStreamReader(pipedIn)) {
                 StringBuilder buffer = new StringBuilder();
@@ -100,7 +129,6 @@ public class SshService {
                     if (ch == '\n') {
                         flushBuffer(buffer, sessionId);
                     } else {
-                        // Проверка на паузу (например, 300 мс без символов)
                         while (System.currentTimeMillis() - lastCharTime < 300) {
                             if (reader.ready()) break;
                             Thread.sleep(50);
@@ -112,15 +140,19 @@ public class SshService {
                     }
                 }
 
-                if (buffer.length() > 0) {
-                    flushBuffer(buffer, sessionId);
+                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Сессия была отключена (сервер закрыл соединение)");
+                try {
+                    closeSession(sessionId);
+                } catch (IOException e) {
+                    messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при закрытии сессии: " + e.getMessage());
                 }
 
             } catch (Exception e) {
-                messagingTemplate.convertAndSend("/topic/response/" + sessionId, "Ошибка при чтении вывода: " + e.getMessage());
+                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при чтении вывода: " + e.getMessage());
             }
         });
     }
+
 
     private void flushBuffer(StringBuilder buffer, String sessionId) {
         String line = buffer.toString();
@@ -128,9 +160,29 @@ public class SshService {
         messagingTemplate.convertAndSend("/topic/response/" + sessionId, line);
     }
 
+    public boolean deleteSession(String sessionId) {
+        Optional<SshSession> sessionOpt = sshSessionRepository.findById(sessionId);
+        if (sessionOpt.isPresent()) {
+            sshSessionRepository.deleteById(sessionId);
+            // Закрыть SSH-соединение при необходимости
+            return true;
+        }
+        return false;
+    }
 
-
-
+    public boolean updateSession(String sessionId, SshRequest request) {
+        Optional<SshSession> sessionOpt = sshSessionRepository.findById(sessionId);
+        if (sessionOpt.isPresent()) {
+            SshSession session = sessionOpt.get();
+            session.setHost(request.getHost());
+            session.setUsername(request.getUsername());
+            session.setPassword(request.getPassword());
+            session.setPrivateKey(request.getPrivateKey());
+            sshSessionRepository.save(session);
+            return true;
+        }
+        return false;
+    }
 
 
 

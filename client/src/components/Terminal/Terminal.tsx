@@ -11,19 +11,17 @@ import { useDispatch } from "react-redux";
 import { setCurrentConnection } from "../../slice/sshConnectionSlice";
 
 interface XTermConsoleProps {
-  sessionId: number; // Ваш параметр, например, строка
+  sessionId: number; 
 }
 
 const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const term = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
-  const [input, setInput] = useState(""); // Введенная команда
-  const [messages, setMessages] = useState<string[]>([]); // Сообщения от сервера
   const stompClient = useRef<Client | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const inputCursorRef = useRef<number>(0); // позиция курсора
-  const promptLineRef = useRef<string>(""); // вся строка последнего приглашения
+  const inputCursorRef = useRef<number>(0); 
+  const promptLineRef = useRef<string>(""); 
   const [shellInit, { isLoading, error }] = useInitshellMutation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -31,13 +29,9 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   function redrawInputLine(terminal: Terminal, input: string, cursorPos: number) {
     const prompt = promptLineRef.current;
   
-    // Очистка строки и возврат курсора
+  
     terminal.write("\x1b[2K\r");
-  
-    // Переотрисовка строки с prompt и вводом
     terminal.write(prompt + input);
-  
-    // Сдвигаем курсор назад, если он не в конце
     const moveLeft = input.length - cursorPos;
     if (moveLeft > 0) {
       terminal.write(`\x1b[${moveLeft}D`);
@@ -71,8 +65,8 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
     term.current.focus();
     fitAddon.current.fit();
   
-    let currentInput = ""; // переменная для текущей команды
-    let lastCommand = ""; // хранение последней команды, чтобы не выводить её снова
+    let currentInput = ""; 
+    let lastCommand = ""; 
   
     term.current.onData((data) => {
       const allowedChars = /^[a-zA-Z0-9\-_.\/"'\s]*$/;
@@ -82,27 +76,25 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
       let inputStr = currentInput;
       let cursorPos = inputCursorRef.current ?? inputStr.length;
   
-      // Обработка нажатия Enter
+    
       if (data === "\r") {
         const trimmed = inputStr.trim();
-        term.current.write("\r\n"); // перенос строки, но вывод команды не происходит
+        term.current.write("\r\n"); 
   
         if (trimmed.length > 0) {
-          // Отправляем команду по WebSocket
           stompClient.current?.publish({
             destination: "/app/execute",
             body: JSON.stringify({ command: trimmed, sessionId: String(sessionId) }),
           });
           console.log("📤 Отправлена команда:", trimmed, String(sessionId));
   
-          // Очищаем строку ввода, но не выводим её в терминале
           currentInput = "";
           inputCursorRef.current = 0;
-          lastCommand = trimmed; // сохраняем команду для исключения дублирования
+          lastCommand = trimmed; 
         }
       }
   
-      // Обработка Backspace, стрелок и других символов
+      
       else if (data === "\u007f") {
         if (cursorPos > 0) {
           inputStr = inputStr.slice(0, cursorPos - 1) + inputStr.slice(cursorPos);
@@ -138,7 +130,6 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
       term.current?.scrollToBottom();
     });
   
-    // STOMP client init + ЛОГИ
     stompClient.current = new Client({
       brokerURL: /*"wss://pilipenkoaleksey.ru/ws/ssh"*/ "wss://localhost:8080/ws/ssh",
       connectHeaders: {},
@@ -152,22 +143,22 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
           let body = message.body;
           if (!term.current) return;
         
-          // Если приходит новая строка — сохраняем prompt
+          
           if (body.endsWith("# ") || body.endsWith("$ ")) {
             promptLineRef.current = body;
         
-            // Очистка текущего ввода и обновление позиции курсора
+            
             currentInput = "";
             inputCursorRef.current = 0;
           }
         
-          // Находим первое вхождение lastCommand в body и удаляем его
+          
           if (lastCommand) {
-            body = body.replace(lastCommand, ""); // Убираем только первое вхождение команды
+            body = body.replace(lastCommand, ""); 
           }
         
-          // Выводим изменённый ответ
-          term.current.write(body); // Выводим ответ без лишнего "\r"
+         
+          term.current.write(body); 
         });
         stompClient.current?.subscribe(`/topic/exception/${sessionId}`, (message) => {
           let body = message.body;

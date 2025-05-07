@@ -14,7 +14,6 @@ export interface ConnectResponse {
   session_id: number;
 }
 
-// Интерфейс для сессии (можно дополнить по необходимости)
 export interface SshSession {
   sessionId: number;
   host: string;
@@ -27,14 +26,13 @@ export const sshApi = createApi({
     baseUrl: "http://localhost:8080/api/v1/ssh",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("access_token");
-
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
       }
-
       return headers;
     },
   }),
+  tagTypes: ["Sessions"],
   endpoints: (builder) => ({
     connect: builder.mutation<ConnectResponse, ConnectRequest>({
       query: (credentials) => ({
@@ -56,8 +54,39 @@ export const sshApi = createApi({
         method: "GET",
         params: { id: userId },
       }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((session) => ({
+                type: "Sessions" as const,
+                id: session.sessionId,
+              })),
+              { type: "Sessions", id: "LIST" },
+            ]
+          : [{ type: "Sessions", id: "LIST" }],
+    }),
+    updateSession: builder.mutation<{ message: string }, { sessionId: string; data: any }>({
+      query: ({ sessionId, data }) => ({
+        url: `/${sessionId}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "Sessions", id: "LIST" }],
+    }),
+    deleteSession: builder.mutation<void, string>({
+      query: (sessionId) => ({
+        url: `/${sessionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Sessions", id: "LIST" }],
     }),
   }),
 });
 
-export const {useConnectMutation, useInitshellMutation, useGetSessionsQuery,} = sshApi;
+export const {
+  useConnectMutation,
+  useInitshellMutation,
+  useGetSessionsQuery,
+  useDeleteSessionMutation,
+  useUpdateSessionMutation,
+} = sshApi;
