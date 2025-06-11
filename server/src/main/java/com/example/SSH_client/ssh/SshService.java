@@ -110,6 +110,18 @@ public class SshService {
         shellChannels.put(sessionId, new ShellSession(channel, channel.getInvertedIn(), pipedOut));
 
         outputExecutor.submit(() -> {
+
+            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    if (session.isOpen()) {
+                        session.sendIgnoreMessage(new byte[0]);
+                    }
+                } catch (IOException e) {
+                    messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка keep-alive: " + e.getMessage());
+                }
+            }, 0, 20, TimeUnit.SECONDS);
+
             try (InputStreamReader reader = new InputStreamReader(pipedIn)) {
                 StringBuilder buffer = new StringBuilder();
                 int ch;
@@ -137,25 +149,18 @@ public class SshService {
 
                         Thread.sleep(100);
                     }
-                    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-                    scheduler.scheduleAtFixedRate(() -> {
-                        try {
-                            session.sendIgnoreMessage(new byte[0]); // отправка SSH_MSG_IGNORE
-                        } catch (IOException e) {
-                            // обработка ошибки (разрыв соединения и т.п.)
-                        }
-                    }, 0, 20, TimeUnit.SECONDS);
+
                 }
 
             } catch (Exception e) {
                 messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка shell: " + e.getMessage());
-            }
-
-            // Закрытие сессии — вручную, если сервер закрыл соединение
-            try {
-                closeSession(sessionId);
-            } catch (IOException e) {
-                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при закрытии сессии: " + e.getMessage());
+            }finally {
+                scheduler.shutdownNow(); // обязательно завершаем планировщик
+                try {
+                    closeSession(sessionId);
+                } catch (IOException e) {
+                    messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при закрытии сессии: " + e.getMessage());
+                }
             }
         });
     }
