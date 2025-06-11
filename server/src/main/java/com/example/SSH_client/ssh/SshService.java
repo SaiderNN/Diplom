@@ -34,7 +34,7 @@ public class SshService {
 
     private final SshClient client;
     private final Map<String, ClientSession> activeSessions = new ConcurrentHashMap<>();
-    private final Map<String, ShellSession> shellSessions = new ConcurrentHashMap<>();
+    private final Map<String, ShellSession> shellChannels = new ConcurrentHashMap<>();
     private final ExecutorService outputExecutor = Executors.newCachedThreadPool();
 
     public SshService() {
@@ -63,23 +63,20 @@ public class SshService {
     }
 
     public void initShellSession(String sessionId) throws IOException {
-        // Получаем SSH-сессию из репозитория
         SshSession sshSession = sshSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Сессия с id " + sessionId + " не найдена"));
 
-        // Создаём новую SSH-сессию
         System.out.println("Создание SSH-сессии:");
         System.out.println("ID: " + sessionId);
         System.out.println("Пользователь: " + sshSession.getUsername());
         System.out.println("Хост: " + sshSession.getHost());
-        System.out.println("Пароль: " + sshSession.getPassword());
-        System.out.println("Ключ: " + sshSession.getPrivateKey());
 
         ClientSession session = client.connect(
                 sshSession.getUsername(),
                 sshSession.getHost(),
                 22
         ).verify().getSession();
+
 
         if (sshSession.getPassword() != null) {
             System.out.println("Аутентификация по паролю");
@@ -92,16 +89,13 @@ public class SshService {
             session.addPublicKeyIdentity(keyPair);
         }
 
-// ВАЖНО: проверка результата аутентификации
         boolean authSuccess = session.auth().verify(15, TimeUnit.SECONDS).isSuccess();
         if (!authSuccess) {
             throw new IllegalStateException("Аутентификация не удалась! Проверь логин/пароль или ключ.");
         }
 
-        // Сохраняем активную сессию
         activeSessions.put(sessionId, session);
 
-        // Открываем shell-канал
         ChannelShell channel = session.createShellChannel();
         channel.setUsePty(true);
 
@@ -113,45 +107,59 @@ public class SshService {
 
         channel.open().verify(5, TimeUnit.SECONDS);
 
-        shellSessions.put(sessionId, new ShellSession(channel, channel.getInvertedIn(), pipedOut));
+        shellChannels.put(sessionId, new ShellSession(channel, channel.getInvertedIn(), pipedOut));
 
-        // Чтение вывода асинхронно
         outputExecutor.submit(() -> {
             try (InputStreamReader reader = new InputStreamReader(pipedIn)) {
                 StringBuilder buffer = new StringBuilder();
                 int ch;
                 long lastCharTime = System.currentTimeMillis();
 
-                while ((ch = reader.read()) != -1) {
-                    buffer.append((char) ch);
-                    lastCharTime = System.currentTimeMillis();
+                while (true) {
+                    if (reader.ready() && (ch = reader.read()) != -1) {
+                        buffer.append((char) ch);
+                        lastCharTime = System.currentTimeMillis();
 
-                    if (ch == '\n') {
-                        flushBuffer(buffer, sessionId);
-                    } else {
-                        while (System.currentTimeMillis() - lastCharTime < 300) {
-                            if (reader.ready()) break;
-                            Thread.sleep(50);
+                        if (ch == '\n') {
+                            flushBuffer(buffer, sessionId);
                         }
-
+                    } else {
                         if (System.currentTimeMillis() - lastCharTime >= 300 && buffer.length() > 0) {
                             flushBuffer(buffer, sessionId);
                         }
-                    }
-                }
 
-                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Сессия была отключена (сервер закрыл соединение)");
-                try {
-                    closeSession(sessionId);
-                } catch (IOException e) {
-                    messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при закрытии сессии: " + e.getMessage());
+                        // Проверяем, не закрылся ли канал (например, сервер оборвал сессию)
+                        if (!channel.isOpen()) {
+                            messagingTemplate.convertAndSend("/topic/exception/" + sessionId,
+                                    "Shell-сессия закрыта удалённым сервером");
+                            break;
+                        }
+
+                        Thread.sleep(100);
+                    }
+                    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+                    scheduler.scheduleAtFixedRate(() -> {
+                        try {
+                            session.sendIgnoreMessage(new byte[0]); // отправка SSH_MSG_IGNORE
+                        } catch (IOException e) {
+                            // обработка ошибки (разрыв соединения и т.п.)
+                        }
+                    }, 0, 20, TimeUnit.SECONDS);
                 }
 
             } catch (Exception e) {
-                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при чтении вывода: " + e.getMessage());
+                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка shell: " + e.getMessage());
+            }
+
+            // Закрытие сессии — вручную, если сервер закрыл соединение
+            try {
+                closeSession(sessionId);
+            } catch (IOException e) {
+                messagingTemplate.convertAndSend("/topic/exception/" + sessionId, "Ошибка при закрытии сессии: " + e.getMessage());
             }
         });
     }
+
 
 
     private void flushBuffer(StringBuilder buffer, String sessionId) {
@@ -187,7 +195,7 @@ public class SshService {
 
 
     public void sendToShell(String sessionId, String command) throws IOException {
-        ShellSession shell = shellSessions.get(sessionId);
+        ShellSession shell = shellChannels.get(sessionId);
         if (shell == null) throw new IllegalStateException("Shell-сессия не найдена");
 
         OutputStream in = shell.getInput();
@@ -196,13 +204,13 @@ public class SshService {
     }
 
     public String getShellOutput(String sessionId) {
-        ShellSession shell = shellSessions.get(sessionId);
+        ShellSession shell = shellChannels.get(sessionId);
         if (shell == null) return "";
         return shell.getOutput().toString().trim();
     }
 
     public void closeSession(String sessionId) throws IOException {
-        ShellSession shell = shellSessions.remove(sessionId);
+        ShellSession shell = shellChannels.remove(sessionId);
         if (shell != null) {
             shell.getChannel().close();
         }

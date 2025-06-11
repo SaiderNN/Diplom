@@ -56,9 +56,8 @@ public class SshController {
         return sshSessionRepository.findAllByUser_Id(id);
     }
 
-  //  @PostMapping("/disconnect")
-   // public String disconnect() {
-   //     sshService.closeSession();
-   //     return "SSH-соединение закрыто";
-   // }
+    @PostMapping("/disconnect")
+    public void disconnect(@RequestParam Number sessionId) throws IOException {
+        sshService.closeSession(sessionId.toString());
+    }
 }

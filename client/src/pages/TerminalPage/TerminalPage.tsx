@@ -9,10 +9,12 @@ import { useNavigate } from "react-router-dom";
 import "./TerminalPage.css"; 
 
 
+
 const TerminalPage = () => {
   const dispatch = useDispatch();
   const currentConnection = useSelector((state: RootState) => state.ssh.currentConnection);
   const navigate = useNavigate();
+ 
 
   useEffect(() => {
     if (!currentConnection) {
@@ -33,7 +35,7 @@ const TerminalPage = () => {
     <div className="terminal-page">
       <XTermConsole sessionId={currentConnection.sessionId} />
       <button className="back-button" onClick={handleGoBack}>
-        Назад
+        Отключиться
       </button>
     </div>
   );

@@ -96,7 +96,7 @@ html, body {
     font-size: 1rem;
     cursor: pointer;
     transition: background 0.3s ease;
-    width: 100%;
+    width: 100%; /* для кнопки Сохранить, чтобы она была на всю ширину */
   }
   
   .ssh-box button:hover {
@@ -107,7 +107,6 @@ html, body {
     background: #ccc;
     cursor: not-allowed;
   }
-  
 
   .error-message {
     color: red;
@@ -127,8 +126,11 @@ html, body {
     font-size: 20px;
     z-index: 10; 
   }
+  /* Уменьшаем расстояние между кнопками */
   .back-button {
-    margin-bottom: 10px;
+    margin-top: 0.5rem;
+    margin-left: 10px; /* добавим отступ между кнопками */
+    margin-bottom: 0.5rem;
     padding: 6px 12px;
     font-size: 14px;
     background-color: #e0e0e0;
@@ -136,9 +138,14 @@ html, body {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out;
+    width: auto; /* уменьшает ширину кнопки */
+    display: inline-block; /* делает кнопку рядом с кнопкой Сохранить */
   }
-  
+  .buttons-container {
+    display: flex;
+    justify-content: space-between; /* Равномерное распределение кнопок */
+    gap: 10px; /* Отступ между кнопками */
+  }
   .back-button:hover {
     background-color: #d0d0d0;
   }
-  

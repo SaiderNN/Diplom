@@ -4,14 +4,14 @@ import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
 import "./Terminal.css";
 import { Client } from "@stomp/stompjs";
-import { useInitshellMutation } from "../../api/sshApi";
+import { useInitshellMutation, useDisconnectSessionMutation } from "../../api/sshApi";
 import SockJS from "sockjs-client";
-import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCurrentConnection } from "../../slice/sshConnectionSlice";
+import TerminalSettingsMenu from "../TerminalSettings/TerminalSettings";
 
 interface XTermConsoleProps {
-  sessionId: number; 
+  sessionId: number;
 }
 
 const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
@@ -19,187 +19,185 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
   const term = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const stompClient = useRef<Client | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
-  const inputCursorRef = useRef<number>(0); 
-  const promptLineRef = useRef<string>(""); 
-  const [shellInit, { isLoading, error }] = useInitshellMutation();
-  const navigate = useNavigate();
+  const inputCursorRef = useRef<number>(0);
+  const promptLineRef = useRef<string>("");
+
+  const [shellInit] = useInitshellMutation();
+  const [disconnect] = useDisconnectSessionMutation();
   const dispatch = useDispatch();
 
+  const [fontSize, setFontSize] = useState(14);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  const currentInput = useRef("");
+  const history = useRef<string[]>([]);
+  const historyIndex = useRef<number>(-1);
+  const lastCommand = useRef<string>("");
+
+  const themes = {
+    dark: { 
+      background: "#300824", 
+      foreground: "#ffffff", 
+      cursor: "#ffffff" },
+    light: { 
+      background: "#f5f5f5", 
+      foreground: "#000000", 
+      cursor: "#000000" 
+    },
+  };
+
   function redrawInputLine(terminal: Terminal, input: string, cursorPos: number) {
-    const prompt = promptLineRef.current;
-  
-  
-    terminal.write("\x1b[2K\r");
-    terminal.write(prompt + input);
+    terminal.write("\x1b[2K\r" + promptLineRef.current + input);
     const moveLeft = input.length - cursorPos;
-    if (moveLeft > 0) {
-      terminal.write(`\x1b[${moveLeft}D`);
-    }
+    if (moveLeft > 0) terminal.write(`\x1b[${moveLeft}D`);
   }
-  
-  
 
   useLayoutEffect(() => {
-    if (terminalRef.current) {
-      setIsMounted(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted || !terminalRef.current) return;
-    term.current = new Terminal({
+    if (!terminalRef.current) return;
+    const terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 14,
+      fontSize,
       fontFamily: "Ubuntu Mono, monospace",
-      theme: {
-        background: "#300A24",
-        foreground: "#E0E0E0",
-        cursor: "#FF7800",
-      },
+      theme: themes[theme],
     });
-  
+    term.current = terminal;
     fitAddon.current = new FitAddon();
-    term.current.loadAddon(fitAddon.current);
-    term.current.open(terminalRef.current);
-    term.current.focus();
+    terminal.loadAddon(fitAddon.current);
+    terminal.open(terminalRef.current);
+    terminal.focus();
     fitAddon.current.fit();
-  
-    let currentInput = ""; 
-    let lastCommand = ""; 
-  
-    term.current.onData((data) => {
-      const allowedChars = /^[a-zA-Z0-9\-_.\/"'\s]*$/;
-  
-      if (!term.current) return;
-  
-      let inputStr = currentInput;
-      let cursorPos = inputCursorRef.current ?? inputStr.length;
-  
-    
-      if (data === "\r") {
-        const trimmed = inputStr.trim();
-        term.current.write("\r\n"); 
-  
-        if (trimmed.length > 0) {
-          stompClient.current?.publish({
-            destination: "/app/execute",
-            body: JSON.stringify({ command: trimmed, sessionId: String(sessionId) }),
-          });
-          console.log("📤 Отправлена команда:", trimmed, String(sessionId));
-  
-          currentInput = "";
-          inputCursorRef.current = 0;
-          lastCommand = trimmed; 
+
+    terminal.onData((data) => {
+      let input = currentInput.current;
+      let cursorPos = inputCursorRef.current;
+      switch (data) {
+        case "\r": {
+          const cmd = input.trim();
+          terminal.write("\r\n");
+          if (cmd) {
+            stompClient.current?.publish({ destination: "/app/execute", body: JSON.stringify({ command: cmd, sessionId: String(sessionId) }) });
+            history.current.push(cmd);
+            historyIndex.current = history.current.length;
+            lastCommand.current = cmd;
+          }
+          input = "";
+          cursorPos = 0;
+          break;
+        }
+        case "\u0003": {
+          terminal.write("^C\r\n");
+          input = "";
+          cursorPos = 0;
+          break;
+        }
+        case "\u007f": {
+          if (cursorPos > 0) {
+            input = input.slice(0, cursorPos - 1) + input.slice(cursorPos);
+            cursorPos--;
+            redrawInputLine(terminal, input, cursorPos);
+          }
+          break;
+        }
+        case "\x1b[D": if (cursorPos > 0) { cursorPos--; terminal.write("\x1b[D"); } break;
+        case "\x1b[C": if (cursorPos < input.length) { cursorPos++; terminal.write("\x1b[C"); } break;
+        case "\x1b[A": {
+          if (historyIndex.current > 0) {
+            historyIndex.current--;
+            input = history.current[historyIndex.current];
+            cursorPos = input.length;
+            redrawInputLine(terminal, input, cursorPos);
+          }
+          break;
+        }
+        case "\x1b[B": {
+          if (historyIndex.current < history.current.length - 1) {
+            historyIndex.current++;
+            input = history.current[historyIndex.current];
+          } else {
+            historyIndex.current = history.current.length;
+            input = "";
+          }
+          cursorPos = input.length;
+          redrawInputLine(terminal, input, cursorPos);
+          break;
+        }
+        default: {
+          input = input.slice(0, cursorPos) + data + input.slice(cursorPos);
+          cursorPos += data.length;
+          redrawInputLine(terminal, input, cursorPos);
         }
       }
-  
-      
-      else if (data === "\u007f") {
-        if (cursorPos > 0) {
-          inputStr = inputStr.slice(0, cursorPos - 1) + inputStr.slice(cursorPos);
-          cursorPos--;
-          redrawInputLine(term.current, inputStr, cursorPos);
-        }
-      }
-  
-      else if (data === "\x1b[D") {
-        if (cursorPos > 0) {
-          cursorPos--;
-          term.current.write("\x1b[D");
-        }
-      }
-  
-      else if (data === "\x1b[C") {
-        if (cursorPos < inputStr.length) {
-          cursorPos++;
-          term.current.write("\x1b[C");
-        }
-      }
-  
-      else if (allowedChars.test(data)) {
-        inputStr = inputStr.slice(0, cursorPos) + data + inputStr.slice(cursorPos);
-        cursorPos++;
-        redrawInputLine(term.current, inputStr, cursorPos);
-      }
-  
-      currentInput = inputStr;
+      currentInput.current = input;
       inputCursorRef.current = cursorPos;
-  
       fitAddon.current?.fit();
-      term.current?.scrollToBottom();
+      terminal.scrollToBottom();
     });
-  
+
     stompClient.current = new Client({
-      brokerURL: /*"wss://pilipenkoaleksey.ru/ws/ssh"*/ "wss://localhost:8080/ws/ssh",
+      brokerURL: "http://localhost:8080/ws/ssh",
+      webSocketFactory: () => new SockJS("http://localhost:8080/ws/ssh"),
       connectHeaders: {},
-      debug: (str) => {
-        console.log(`[STOMP DEBUG]: ${str}`);
-      },
-      onConnect: (frame) => {
-        console.log("[✅ STOMP CONNECTED]:", frame);
+      debug: () => {},
+      onConnect: () => {
         shellInit(sessionId);
-        stompClient.current?.subscribe(`/topic/response/${sessionId}`, (message) => {
-          let body = message.body;
-          if (!term.current) return;
-        
-          
-          if (body.endsWith("# ") || body.endsWith("$ ")) {
-            promptLineRef.current = body;
-        
-            
-            currentInput = "";
-            inputCursorRef.current = 0;
+        stompClient.current?.subscribe(`/topic/response/${sessionId}`, (msg) => {
+          const body = msg.body;
+          if (term.current) {
+            if (body.endsWith("# ") || body.endsWith("$ ")) {
+              promptLineRef.current = body;
+              currentInput.current = "";
+              inputCursorRef.current = 0;
+            }
+            const out = lastCommand.current ? body.replace(lastCommand.current, "") : body;
+            term.current.write(out);
           }
-        
-          
-          if (lastCommand) {
-            body = body.replace(lastCommand, ""); 
-          }
-        
-         
-          term.current.write(body); 
         });
-        stompClient.current?.subscribe(`/topic/exception/${sessionId}`, (message) => {
-          let body = message.body;
-          if (!term.current) return;
-         dispatch(setCurrentConnection(null));
-          
+        stompClient.current?.subscribe(`/topic/exception/${sessionId}`, (msg) => {
+          dispatch(setCurrentConnection(null));
+          alert(`Ошибка: ${msg.body}`);
         });
-        
       },
-      onStompError: (frame) => {
-        console.error("[❌ STOMP ERROR]:", frame.headers["message"], frame.body);
-      },
-      onWebSocketError: (event) => {
-        console.error("[❌ WebSocket Error]:", event);
-      },
-      onWebSocketClose: (event) => {
-        console.warn("[⚠️ WebSocket Closed]:", event);
-      },
-      webSocketFactory: () => new SockJS(/*"https://pilipenkoaleksey.ru/ws/ssh"*/"http://localhost:8080/ws/ssh"),
+      onStompError: () => {},
+      onWebSocketError: () => {},
+      onWebSocketClose: () => {}
     });
-  
     stompClient.current.activate();
+
     return () => {
       stompClient.current?.deactivate();
       term.current?.dispose();
+      disconnect(sessionId).unwrap().catch(() => {});
     };
-  }, [isMounted]);
-  
+  }, []);
+
+  useEffect(() => {
+    if (term.current) {
+      term.current.options.fontSize = fontSize;
+      term.current.options.theme = themes[theme];
+      fitAddon.current?.fit();
+    }
+  }, [fontSize, theme]);
 
   return (
-    <div className="terminal-container">
-      <div className="title-bar">
-        <div className="buttons">
-          <div className="button button-red" />
-          <div className="button button-yellow" />
-          <div className="button button-green" />
+    <>  
+      <TerminalSettingsMenu
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
+      <div className="terminal-container">
+        <div className="title-bar">
+          <div className="buttons">
+            <div className="button button-red" />
+            <div className="button button-yellow" />
+            <div className="button button-green" />
+          </div>
+          <span className="window-title" />
         </div>
-        <span className="window-title"></span>
+        <div ref={terminalRef} className="terminal" tabIndex={0} />
       </div>
-      <div ref={terminalRef} className="terminal" tabIndex={0} />
-    </div>
+    </>
   );
 };
 

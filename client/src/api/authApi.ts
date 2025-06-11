@@ -16,7 +16,7 @@ export interface RegData {
   
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/api/v1/auth' }),
+  baseQuery: fetchBaseQuery({ baseUrl: 'https://pilipenkoaleksey.ru/api/v1/auth' }),
   endpoints: (builder) => ({
     login: builder.mutation<RefreshResponse, AuthData >({
       query: (credentials) => ({

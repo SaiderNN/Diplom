@@ -80,6 +80,13 @@ export const sshApi = createApi({
       }),
       invalidatesTags: [{ type: "Sessions", id: "LIST" }],
     }),
+    disconnectSession: builder.mutation<void, number>({
+      query: (sessionId) => ({
+        url: "/disconnect",
+        method: "POST",
+        params: { sessionId },
+      }),
+    }),
   }),
 });
 
@@ -89,4 +96,5 @@ export const {
   useGetSessionsQuery,
   useDeleteSessionMutation,
   useUpdateSessionMutation,
+  useDisconnectSessionMutation, 
 } = sshApi;

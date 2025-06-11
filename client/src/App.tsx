@@ -4,7 +4,7 @@ import './App.css';
 
 import {Route, Routes } from 'react-router-dom';
 import XTermConsole from './components/Terminal/Terminal';
-import SshConnectionPage from './pages/SshConnectionDialog/SshConnectionPage';
+import SshConnectionPage from './pages/SshConnectionPage/SshConnectionPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import { AppDispatch } from './store/store';
 import { useDispatch, useSelector } from 'react-redux';
@@ -37,13 +37,13 @@ const App: React.FC = () => {
 
   return (
    
-      <Routes>
-        <Route path="/login" element={<LoginPage />} /> 
-        <Route path="/register" element={<RegisterPage />} /> 
-        <Route path="/" element={<RefugePage />} />
-        <Route path="/connect/new" element={<SshConnectionPage />} />
-        <Route path="/terminal" element={<TerminalPage />} />  {/* Новый маршрут для терминала */}
-      </Routes>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/" element={<RefugePage />} />
+      <Route path="/connect/new" element={<SshConnectionPage />} />
+      <Route path="/terminal" element={<TerminalPage />} />  {/* Новый маршрут для терминала */}
+    </Routes>
     
   );
 };

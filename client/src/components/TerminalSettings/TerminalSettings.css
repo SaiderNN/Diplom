@@ -1,0 +1,80 @@
+.terminal-settings-menu {
+  display: flex;
+  gap: 2rem;
+  background-color: #4e0d3a;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  font-family: sans-serif;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
+.terminal-settings-menu input {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  background-color: #fff;
+  color: #000;
+  font-family: inherit;
+  outline: none;
+  width: 65px;
+  text-align: center;
+}
+
+.terminal-settings-menu input:focus {
+  box-shadow: 0 0 0 2px #d36eb4;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.icon-wrapper {
+  transition: transform 0.4s ease;
+}
+
+.icon-wrapper.rotate {
+  transform: rotate(360deg);
+}
+.size-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  background-color: #fff;
+}
+.font-size-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.size-icon {
+  position: absolute;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.font-size-input {
+  padding-left: 28px; /* чтобы не перекрывать иконкой */
+  height: 24px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+}

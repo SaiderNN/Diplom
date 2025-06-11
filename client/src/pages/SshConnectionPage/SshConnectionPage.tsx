@@ -136,12 +136,14 @@ const SshConnectionPage: React.FC = () => {
             </>
           )}
 
-          <button onClick={handleConnect} disabled={isConnecting || isUpdating}>
-            {(isConnecting || isUpdating) ? "Сохранение..." : "Сохранить"}
-          </button>
-          <button onClick={() => navigate("/")} className="back-button">
-            ⬅ Назад
-          </button>
+        <div className="buttons-container">
+        <button onClick={handleConnect} disabled={isConnecting || isUpdating} className="back-button">
+          {(isConnecting || isUpdating) ? "Сохранение..." : "Сохранить"}
+        </button>
+        <button onClick={() => navigate("/")} className="back-button">
+          ⬅ Назад
+        </button>
+        </div>
 
           {(connectError || updateError) && (
             <p className="error-message">Ошибка подключения</p>
