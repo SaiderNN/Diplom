@@ -12,7 +12,7 @@ export interface RefreshTokenData {
 export const refreshApi = createApi({
   reducerPath: 'refreshApi',
   baseQuery: fetchBaseQuery({ 
-    baseUrl: 'http://localhost:8080/api/v1/auth', 
+    baseUrl: 'https://pilipenkoaleksey.ru/api/v1/auth', 
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("access_token");
 
