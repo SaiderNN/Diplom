@@ -10,7 +10,7 @@ export interface UserIdResponse {
 export const profileApi = createApi({
   reducerPath: 'profileApi',
   baseQuery: fetchBaseQuery({ 
-    baseUrl: 'https://pilipenkoaleksey.ru/api/v1/user',
+    baseUrl: '/api/v1/user',
     prepareHeaders: (headers) => {
         const token = localStorage.getItem("access_token");
   

@@ -28,7 +28,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Отключение CSRF
                 .cors(Customizer.withDefaults()) // Настройка CORS
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll() // Разрешаем доступ к публичным API
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/ssh/**").authenticated()
                         .requestMatchers("/ws/ssh/**").permitAll() // Разрешаем доступ к WebSocket
                         .anyRequest().authenticated() // Все остальные запросы требуют аутентификации
                 )

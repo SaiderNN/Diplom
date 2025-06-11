@@ -23,7 +23,7 @@ export interface SshSession {
 export const sshApi = createApi({
   reducerPath: "sshApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "https://pilipenkoaleksey.ru/api/v1/ssh",
+    baseUrl: "/api/v1/ssh",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("access_token");
       if (token) {
