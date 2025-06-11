@@ -134,8 +134,8 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
     });
 
     stompClient.current = new Client({
-      brokerURL: "http://localhost:8080/ws/ssh",
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws/ssh"),
+      brokerURL: "https://pilipenkoaleksey.ru/ws/ssh",
+      webSocketFactory: () => new SockJS("https://pilipenkoaleksey.ru/ws/ssh"),
       connectHeaders: {},
       debug: () => {},
       onConnect: () => {
