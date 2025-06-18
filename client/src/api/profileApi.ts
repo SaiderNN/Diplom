@@ -4,7 +4,7 @@ import { AuthData } from './authApi';
 
 
 export interface UserIdResponse {
-  id: number| null;
+  id: number;
 }
 
 export const profileApi = createApi({

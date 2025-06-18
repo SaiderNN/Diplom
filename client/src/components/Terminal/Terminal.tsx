@@ -8,6 +8,7 @@ import { useInitshellMutation, useDisconnectSessionMutation } from "../../api/ss
 import SockJS from "sockjs-client";
 import { useDispatch } from "react-redux";
 import { setCurrentConnection } from "../../slice/sshConnectionSlice";
+import { setTermTheme } from "../../slice/termSlice";
 import TerminalSettingsMenu from "../TerminalSettings/TerminalSettings";
 
 interface XTermConsoleProps {
@@ -174,6 +175,11 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
     if (term.current) {
       term.current.options.fontSize = fontSize;
       term.current.options.theme = themes[theme];
+      if(themes[theme] == themes.dark){
+        dispatch(setTermTheme("dark"))
+      }
+      else
+        dispatch(setTermTheme("light"))
       fitAddon.current?.fit();
     }
   }, [fontSize, theme]);
@@ -195,7 +201,8 @@ const XTermConsole: React.FC<XTermConsoleProps> = ({ sessionId }) => {
           </div>
           <span className="window-title" />
         </div>
-        <div ref={terminalRef} className="terminal" tabIndex={0} />
+        <div ref={terminalRef} className={`terminal ${theme}`} tabIndex={0} />
+
       </div>
     </>
   );

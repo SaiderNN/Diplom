@@ -15,6 +15,7 @@ const RefugePage = () => {
   const sortedConnections = [...connections].sort((a, b) => a.sessionId - b.sessionId); // или по другим полям
   const currentConnection = useSelector((state: RootState) => state.ssh.currentConnection);
   const profileId = useSelector((state: RootState) => state.profile.userId);
+  const access = useSelector((state: RootState) => state.auth.isAuthenticated);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [session, setSession] = useState<number | null>(null);
@@ -28,7 +29,7 @@ const RefugePage = () => {
   const [deleteSession] = useDeleteSessionMutation();
 
   useEffect(() => {
-    if (userData?.id !== undefined && userData?.id !== null) {
+    if (access && userData !== undefined) {
       dispatch(setUserId(userData.id));
     } else {
       navigate("/login");

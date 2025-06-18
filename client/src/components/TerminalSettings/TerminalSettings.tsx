@@ -31,11 +31,9 @@ const TerminalSettingsMenu: React.FC<TerminalSettingsMenuProps> = ({
     min={10}
     max={30}
     className="font-size-input"
-  />
-</div>
-
+    />
       </div>
-
+       </div>
       <div className="theme-toggle" onClick={toggleTheme}>
         <div className={`icon-wrapper ${theme === "light" ? "rotate" : ""}`}>
           {theme === "dark" ? <Sun size={20} color="white" /> : <Moon size={20} color="white" />}

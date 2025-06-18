@@ -14,13 +14,15 @@ const TerminalPage = () => {
   const dispatch = useDispatch();
   const currentConnection = useSelector((state: RootState) => state.ssh.currentConnection);
   const navigate = useNavigate();
+  const termTheme = useSelector((state: RootState) => state.term.theme);
  
 
   useEffect(() => {
     if (!currentConnection) {
       navigate("/"); // Если нет активного соединения, перенаправляем на главную
     }
-  }, [currentConnection, navigate]);
+
+  }, [currentConnection, navigate, termTheme]);
 
   const handleGoBack = () => {
     dispatch(setCurrentConnection(null)); // Сбрасываем текущее соединение при нажатии на "Назад"
@@ -32,7 +34,7 @@ const TerminalPage = () => {
   }
 
   return (
-    <div className="terminal-page">
+    <div className="terminal-page"  style={{ backgroundColor: termTheme === "dark" ? "#8d196a" : "#e0f7fa" }}>
       <XTermConsole sessionId={currentConnection.sessionId} />
       <button className="back-button" onClick={handleGoBack}>
         Отключиться

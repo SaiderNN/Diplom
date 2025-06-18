@@ -7,6 +7,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer from '../slice/authSlice'
 import sshReducer from '../slice/sshConnectionSlice'
 import profileReducer from '../slice/profileSlice'
+import termReducer from '../slice/termSlice'
 
 export const store = configureStore({
   reducer: {
@@ -18,7 +19,8 @@ export const store = configureStore({
 
     auth: authReducer,
     ssh: sshReducer,
-    profile: profileReducer
+    profile: profileReducer,
+    term: termReducer
 
   },
   middleware: (getDefaultMiddleware) =>
